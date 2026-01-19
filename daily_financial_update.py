@@ -86,6 +86,39 @@ def analyze_market_data() -> Dict[str, Any]:
     return market_data
 
 
+def extract_stock_symbols(news_results: List[Dict]) -> List[str]:
+    """
+    Extract potential stock symbols from news headlines and snippets
+    This is a simple keyword-based approach - could be enhanced with NLP/AI
+    """
+    # Common tech and growth stock symbols to watch
+    common_symbols = {
+        'nvidia': 'NVDA', 'apple': 'AAPL', 'microsoft': 'MSFT', 'google': 'GOOGL',
+        'amazon': 'AMZN', 'meta': 'META', 'tesla': 'TSLA', 'alphabet': 'GOOGL',
+        'amd': 'AMD', 'intel': 'INTC', 'netflix': 'NFLX', 'shopify': 'SHOP',
+        'salesforce': 'CRM', 'adobe': 'ADBE', 'paypal': 'PYPL', 'square': 'SQ',
+        'coinbase': 'COIN', 'robinhood': 'HOOD', 'palantir': 'PLTR',
+        'snowflake': 'SNOW', 'datadog': 'DDOG', 'cloudflare': 'NET',
+        'crowdstrike': 'CRWD', 'okta': 'OKTA', 'twilio': 'TWLO',
+        'uber': 'UBER', 'lyft': 'LYFT', 'airbnb': 'ABNB', 'doordash': 'DASH',
+        'spotify': 'SPOT', 'zoom': 'ZM', 'slack': 'WORK', 'asana': 'ASAN',
+        'roblox': 'RBLX', 'unity': 'U', 'draftkings': 'DKNG',
+        'moderna': 'MRNA', 'pfizer': 'PFE', 'biontech': 'BNTX',
+        'illumina': 'ILMN', 'crispr': 'CRSP', 'regeneron': 'REGN',
+        'gamestop': 'GME', 'amc': 'AMC', 'rivian': 'RIVN', 'lucid': 'LCID'
+    }
+
+    found_symbols = set()
+
+    for item in news_results:
+        text = (item.get('title', '') + ' ' + item.get('snippet', '')).lower()
+        for keyword, symbol in common_symbols.items():
+            if keyword in text:
+                found_symbols.add(symbol)
+
+    return sorted(list(found_symbols))
+
+
 def generate_investment_insights(news_results: List[Dict]) -> str:
     """
     Generate investment insights based on news and market data
@@ -94,11 +127,28 @@ def generate_investment_insights(news_results: List[Dict]) -> str:
 
     today = datetime.now().strftime('%B %d, %Y')
 
+    # Extract stock symbols from news
+    watchlist_symbols = extract_stock_symbols(news_results)
+
     # Build content from news results
     news_summary = "\n\n".join([
         f"**{item.get('title', 'News Item')}**: {item.get('snippet', 'No description available')}"
         for item in news_results[:5]
     ])
+
+    # Build watchlist section
+    if watchlist_symbols:
+        watchlist_section = "## 📊 Stock Symbols to Watch Today/Tomorrow\n\n"
+        watchlist_section += "Based on today's news coverage, these stocks are generating significant attention:\n\n"
+
+        # Format symbols in groups of 5 for readability
+        for i in range(0, len(watchlist_symbols), 5):
+            group = watchlist_symbols[i:i+5]
+            watchlist_section += "**" + " | ".join(f"`${symbol}`" for symbol in group) + "**\n\n"
+
+        watchlist_section += "_Note: Symbols extracted from news mentions. Always conduct your own research before trading._\n\n---\n\n"
+    else:
+        watchlist_section = ""
 
     content = f"""# Market Overview - {today}
 
@@ -108,7 +158,7 @@ def generate_investment_insights(news_results: List[Dict]) -> str:
 
 ---
 
-## Investment Opportunities for Aggressive Growth (Week Ahead)
+{watchlist_section}## Investment Opportunities for Aggressive Growth (Week Ahead)
 
 ### 🎯 HIGH-CONVICTION PLAYS
 
