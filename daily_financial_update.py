@@ -185,6 +185,50 @@ def create_notion_page(content: str) -> bool:
     today = datetime.now()
     page_title = f"Financial Intelligence - {today.strftime('%B %d, %Y')}"
 
+    # Split content into chunks of max 2000 characters to comply with Notion's limits
+    # We'll split on paragraph boundaries for better readability
+    def chunk_content(text: str, max_length: int = 2000) -> List[str]:
+        """Split text into chunks respecting paragraph boundaries"""
+        chunks = []
+        current_chunk = ""
+
+        # Split by double newlines (paragraph breaks)
+        paragraphs = text.split('\n\n')
+
+        for para in paragraphs:
+            # If adding this paragraph would exceed limit, save current chunk
+            if len(current_chunk) + len(para) + 2 > max_length and current_chunk:
+                chunks.append(current_chunk.strip())
+                current_chunk = para
+            else:
+                current_chunk += ("\n\n" if current_chunk else "") + para
+
+        # Add final chunk
+        if current_chunk:
+            chunks.append(current_chunk.strip())
+
+        return chunks
+
+    # Create children blocks from content chunks
+    content_chunks = chunk_content(content)
+    children_blocks = []
+
+    for chunk in content_chunks:
+        children_blocks.append({
+            "object": "block",
+            "type": "paragraph",
+            "paragraph": {
+                "rich_text": [
+                    {
+                        "type": "text",
+                        "text": {
+                            "content": chunk[:2000]  # Extra safety check
+                        }
+                    }
+                ]
+            }
+        })
+
     # Build the page data
     page_data = {
         "parent": {"database_id": NOTION_DATABASE_ID},
@@ -212,22 +256,7 @@ def create_notion_page(content: str) -> bool:
                 "number": 5
             }
         },
-        "children": [
-            {
-                "object": "block",
-                "type": "paragraph",
-                "paragraph": {
-                    "rich_text": [
-                        {
-                            "type": "text",
-                            "text": {
-                                "content": content[:2000]  # Notion has block size limits
-                            }
-                        }
-                    ]
-                }
-            }
-        ]
+        "children": children_blocks
     }
 
     try:
